@@ -475,6 +475,14 @@ pub fn build<A: Adapter>(
         let apc_unopt = Apc::new(block, unopt_machine, unopt_col_alloc);
         serde_cbor::to_writer(writer_unopt, &apc_unopt)
             .expect("Failed to write unoptimized APC candidate to file");
+        
+        let human_ser_path_unopt = path
+            .join(format!("apc_candidate_unopt_{}", apc.start_pc()))
+            .with_extension("txt");
+        std::fs::write(
+            human_ser_path_unopt,
+            apc_unopt.machine().render(&vm_config.bus_map)
+        ).expect("Failed to create file for human-readable unoptimized APC candidate");
 
         let ser_path = path
             .join(format!("apc_candidate_{}", apc.start_pc()))
