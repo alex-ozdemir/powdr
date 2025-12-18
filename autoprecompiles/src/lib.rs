@@ -459,6 +459,8 @@ pub fn build<A: Adapter>(
     metrics::counter!("after_opt_interactions", &labels)
         .absolute(machine.unique_references().count() as u64);
 
+    let apc_after_opt_before_conv = Apc::new(block.clone(), machine.clone(), column_allocator.clone());
+
     let machine = convert_machine_field_type(machine, &A::into_field);
 
     let apc = Apc::new(block.clone(), machine, column_allocator);
@@ -475,7 +477,7 @@ pub fn build<A: Adapter>(
         let apc_unopt = Apc::new(block, unopt_machine, unopt_col_alloc);
         serde_cbor::to_writer(writer_unopt, &apc_unopt)
             .expect("Failed to write unoptimized APC candidate to file");
-        
+
         let human_ser_path_unopt = path
             .join(format!("apc_candidate_unopt_{}", apc.start_pc()))
             .with_extension("txt");
@@ -491,6 +493,14 @@ pub fn build<A: Adapter>(
             std::fs::File::create(&ser_path).expect("Failed to create file for APC candidate");
         let writer = BufWriter::new(file);
         serde_cbor::to_writer(writer, &apc).expect("Failed to write APC candidate to file");
+
+        let human_ser_path= path
+            .join(format!("apc_candidate_{}", apc.start_pc()))
+            .with_extension("txt");
+        std::fs::write(
+            human_ser_path,
+            apc_after_opt_before_conv.machine().render(&vm_config.bus_map)
+        ).expect("Failed to create file for human-readable APC candidate");
     }
 
     metrics::gauge!("apc_gen_time_ms", &labels).set(start.elapsed().as_millis() as f64);
